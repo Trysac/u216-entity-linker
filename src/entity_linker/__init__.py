@@ -1,24 +1,21 @@
-"""
-Link mentions in text to a catalog of entities by name and alias: token-aligned longest match, case
-and accent insensitive, context-term disambiguation and exact character offsets
-"""
+"""Entity linker: deterministic catalog-driven entity mention detection."""
 
 from __future__ import annotations
 
-__all__ = ["__version__", "normalize"]
+import logging
+
+from ._core import Catalog, Entity, LinkerError, LinkerErrorCode, Mention, link
+
+__all__ = [
+    "Catalog",
+    "Entity",
+    "LinkerError",
+    "LinkerErrorCode",
+    "Mention",
+    "link",
+]
 
 __version__ = "0.1.0"
 
-
-def normalize(value: str) -> str:
-    """Return ``value`` trimmed and lower-cased.
-
-    Placeholder API created by the template: replace it with the utility's real behavior.
-
-    Raises:
-        ValueError: if ``value`` is empty or only whitespace.
-    """
-    cleaned = value.strip()
-    if not cleaned:
-        raise ValueError("value must not be empty")
-    return cleaned.lower()
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())

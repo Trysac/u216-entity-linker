@@ -19,6 +19,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.scripts]
+entity-linker = "entity_linker.__main__:main"
+
 [project.urls]
 Homepage = "https://github.com/Trysac/u216-entity-linker"
 Source = "https://github.com/Trysac/u216-entity-linker"
