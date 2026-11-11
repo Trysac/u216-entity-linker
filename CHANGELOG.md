@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added entity_linker library implementing deterministic catalog-driven entity mention detection.
 - Initial project structure from the factory utility template.

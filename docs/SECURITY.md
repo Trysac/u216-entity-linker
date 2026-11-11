@@ -1,22 +1,31 @@
-# Security notes
+# Security
 
 ## Threat model
 
-`trysac-entity-linker` is a pure library without I/O. The main risks are:
+Defended:
 
-- **Supply chain**: a compromised dependency or CI action. Mitigation: no runtime dependencies,
-  Dependabot weekly updates, actions pinned to major versions, minimal workflow permissions.
-- **Leaked secrets**: tokens committed by mistake. Mitigation: `gitleaks` runs in the local gates
-  and in CI; `.env` files are git-ignored.
-- **Insecure code**: shell injection, weak hashes, unsafe deserialization. Mitigation: Ruff's
-  `S` rules in lint and a `security` gate (Bandit, high severity fails, `# nosec` ignored); fix the
-  code instead of silencing it.
-- **Untrusted input**: callers may pass hostile strings. Mitigation: validate input and fail with
-  explicit exceptions; never `eval`, `exec` or deserialize untrusted data.
+- **Input size limits**: `link` rejects text longer than `max_chars` (default 1,000,000) with
+  `LinkerError('input_too_large')`.
+- **Catalog size limits**: `Catalog` rejects more than 100,000 entities, more than 1,000,000 names
+  plus aliases, names or aliases with more than 10 tokens, and entity ids outside 1-128
+  characters.
+- **CLI catalog file size**: `python -m entity_linker` rejects a catalog file whose size is over
+  100 MB before parsing it.
+- **No code execution from catalogs**: The CLI reads catalog data with `json.load`; entries must be
+  JSON objects and fields are type-checked.
+- **No user text in library errors**: `LinkerError` uses static messages. A duplicate-id error
+  includes the entity id truncated to 128 characters; it does not include input text.
+- **No network access in the library**: The library performs no I/O and calls no external
+  services. The CLI reads only the paths it is given.
 
-## Publishing
+Not defended:
 
-Releases are published to PyPI with trusted publishing (OIDC) when available, never with a
-long-lived token stored in the repository.
+- Resource exhaustion within the allowed limits.
+- Untrusted filesystem paths, file permissions, or other filesystem behavior in the CLI.
+- Escaping or sanitizing mention output for downstream consumers.
+- Semantic correctness of catalog content beyond the documented validation.
 
-To report a vulnerability, see [SECURITY.md](../SECURITY.md).
+## Reporting
+
+Please report vulnerabilities privately via the repository's security advisory page. Do not open a
+public issue.

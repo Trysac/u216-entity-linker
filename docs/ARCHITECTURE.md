@@ -1,29 +1,28 @@
 # Architecture
 
-## Purpose
+`trysac-entity-linker` performs deterministic entity mention detection by combining three ideas:
 
-`trysac-entity-linker` is a small, dependency-free Python library: Link mentions in text to a catalog of entities by name and alias: token-aligned longest match, case and accent insensitive, context-term disambiguation and exact character offsets
+1. **Normalization without losing offsets**: Each character is casefolded, decomposed with NFD,
+   and all non‑spacing marks (Unicode category `Mn`) are removed. A parallel mapping keeps, for
+   every folded character, the index of the original character that produced it. This allows exact
+   offset reporting even when folding expands a character (e.g., `ß` → `ss`) or removes marks.
 
-## Shape
+2. **Token-aligned longest match via trie**: After folding, the text is tokenized into maximal runs
+   of alphanumeric characters. All entity names and aliases are tokenized and inserted into a trie.
+   Scanning the token stream left to right, the longest sequence present in the trie is selected at
+   each position. This guarantees that `New York City` wins over `New York`, and that partial-word
+   matches like `Limabean` are not produced.
 
-```text
-caller code --> entity_linker (public API in __init__.py)
-                    |
-                    +-- pure functions, no I/O, no global state
-```
+3. **Context-term disambiguation**: For each candidate entity sharing a surface, a score is
+   computed as the number of distinct folded context terms that appear as token sequences within a
+   configurable character window before or after the mention. Highest score wins; ties are broken by
+   higher prior, then lower id. An `ambiguous` flag is set when the top two candidates have equal
+   scores.
 
-- **Public API**: the names listed in `__all__` of `src/entity_linker/__init__.py`. Anything else is
-  internal and may change without a major version.
-- **Errors**: invalid input raises built-in exceptions (`ValueError`, `TypeError`) with a clear
-  message; the library never prints or exits.
-- **Side effects**: none. If a feature needs I/O, isolate it in its own module behind a small
-  interface and record the choice in an ADR.
+Limits are enforced during catalog construction: at most 100,000 entities, 1,000,000 names plus
+ aliases, each with at most 10 tokens, and entity ids of 1–128 characters. The `link` function
+ enforces an input length limit (default 1,000,000 characters).
 
-## Quality contract
-
-`scripts/check.py` is the single definition of the gates; `fabrica.json` tells the factory and CI
-how to run it. See [TESTING.md](TESTING.md).
-
-## Decisions
-
-Architecture decisions are recorded in [decisions/](decisions/) as numbered ADRs.
+All errors are raised as `LinkerError` with a stable machine-readable `code` (`duplicate_id`,
+`invalid_alias`, `invalid_entity`, `input_too_large`). The library uses a module-level logger with a
+ `NullHandler`, and never logs user text.
